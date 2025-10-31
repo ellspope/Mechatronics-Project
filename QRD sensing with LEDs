@@ -27,7 +27,7 @@ int main()
 {    
     // Postscale oscillator
     //_RCDIV = 0b011;             // Divide-by-8 postscaler
-    _RCDIV = 0b000;             // Divide-by-0 postscaler
+    _RCDIV = 0b000;             // Divide-by-1 postscaler
     
     // Configure pin 14 (RA6) as digital out for LED
     _TRISA6 = 0;
