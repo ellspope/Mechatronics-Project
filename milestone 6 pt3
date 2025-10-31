@@ -1,0 +1,217 @@
+#include "xc.h"
+
+#pragma config FNOSC = LPRC     // 31 kHz LPRC oscillator
+
+ int time = (1937); // time for 1 sec
+ int steps = 0;
+ int N = 0;
+ int x = 0;
+ // OC1 Interrupt Service Routine
+ enum { FORWARD, TURN90, TURN180, STOP } state;
+void __attribute__((interrupt, no_auto_psv)) _OC1Interrupt(void)
+{
+    // When the OC1 Interrupt is activated, the code will jump up here
+    
+    // each time your PIC generates a PWM step
+    // Add code to clear the flag and increment the step count each time
+    _OC1IF = 0;
+     steps ++ ;
+    // this function is called
+}
+// 
+//void __attribute__((interrupt, no_auto_psv)) _OC2Interrupt(void)
+//{
+//    // When the OC1 Interrupt is activated, the code will jump up here
+//    
+//    // each time your PIC generates a PWM step
+//    // Add code to clear the flag and increment the step count each time
+//    _OC2IF = 0;
+//     steps ++ ;
+//    // this function is called
+//}
+
+// notes
+// LED check system has the forward state connected to pin A0, turn 90 to pin B15, and turn 180 to pin B14
+void delay(void);
+
+
+int main(void) {
+    
+    _RCDIV = 0b000; // SET POSTSCALER TO 0
+    
+ 
+    
+   // interrupt for pin 14
+    _OC1IE = 1; //ENABLE CN
+    _OC1IP = 6; // SET CN INTERRUPT PRIORITY
+    _OC1IF = 0; // CLEAR INTERRUPT FLAG
+    
+  
+    
+    // SET UP PWM
+    // PIN 14
+    OC1CON1 = 0;
+    OC1CON2 = 0;
+    OC1CON2bits.SYNCSEL = 0x1F;
+    OC1CON1bits.OCTSEL = 0b111; // sync to timer system
+    OC1CON1bits.OCM = 0b110; // sync to what timer
+    OC1CON2bits.OCTRIG = 0;
+    
+    // PIN 4
+    OC2CON1 = 0;
+    OC2CON2 = 0;
+    OC2CON2bits.SYNCSEL = 0x1F;
+    OC2CON1bits.OCTSEL = 0b111; // sync to timer system
+    OC2CON1bits.OCM = 0b110; // sync to what timer
+    OC2CON2bits.OCTRIG = 0;
+    
+     // Configure Timer1
+    _TON = 1;       // Turn Timer1 on
+    _TCKPS = 0b01;  // PRESCALER 1:8
+    _TCS = 0;       // Internal clock source (FOSC/2)
+    TMR1 = 0;       // Reset Timer1
+   
+//    
+    ANSA = 0;
+    TRISA = 0; // SET A TO OUTPUT
+    
+    
+     ANSB = 0;
+    TRISB = 0; // SET B TO OUTPUT
+    _TRISB1 = 1; // SWITCH
+    
+    
+    OC1R = 0;
+    OC2R = 0;
+    _LATB1 = 1;
+                
+    
+    enum { FORWARD, TURN90, TURN180, STOP } state;
+    
+
+    state = STOP;
+    
+     while(1)
+    {
+        
+         if (state == STOP) {
+              // Set desired steps for five revolutions
+                N = 3 * 200;
+                _LATB1 = 1;
+                _LATA1 = 1; // LEFT clockwise
+                _LATB9 = 1; //  RIGHT clockwise
+                OC1RS = 77 * 1.25 ; 
+                OC1R = OC1RS * 0.5;
+                OC2RS = 77 * 1.25 ;
+                OC2R = OC1RS * 0.5;
+                steps = 0;
+                
+                // Change state
+                
+                state = FORWARD; 
+         }
+         else if (state == FORWARD)
+        {
+           _LATB1 = 0;
+            _LATA0 = 1;
+            _LATB15 = 0;
+             _LATB14 = 0;
+            // If desired steps reached
+            if (steps > N && x == 0)
+            {
+             
+                delay();
+                
+             _LATA1 = 1; //  LEFT clockwise
+             _LATB9 = 0; //  RIGHT counter clockwise
+             OC1RS = 77 * 2 ; 
+             OC1R = OC1RS * 0.5;
+             OC2RS = 77 * 2 ;
+             OC2R = OC1RS * 0.5;
+             steps = 0;
+             N = 1* 137;                                                                                      
+                
+                // Change state
+                state = TURN90;                
+            }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+             else if (steps > N && x == 1) {
+                 
+                 delay();
+                 
+             _LATA1 = 1; //  LEFT clockwise
+             _LATB9 = 0; //  RIGHT counter clockwise
+             OC1RS = 77 * 2 ; 
+             OC1R = OC1RS * 0.5;
+             OC2RS = 77 * 2 ;
+             OC2R = OC1RS * 0.5;
+             x = 0;
+             steps = 0;
+             N = 2*137;
+                
+                // Change state
+                state = TURN180;                
+            }     
+        }
+        
+        else if (state == TURN90)
+        {
+            _LATA0 = 0;
+            _LATB15 = 1;
+             _LATB14 = 0;
+             if(steps > N) {
+                 
+                 delay();
+                 
+                _LATA1 = 1; // LEFT clockwise
+                _LATB9 = 1; //  RIGHT clockwise
+                OC1RS = 77 ; 
+                OC1R = OC1RS * 0.5;
+                OC2RS = 77 ;
+                OC2R = OC1RS * 0.5;
+                steps = 0;
+                x = 1;
+                N = 3*200;
+                
+                // Change state
+                state = FORWARD;
+            }
+        }
+         else if (state == TURN180)
+        {
+           _LATA0 = 0;
+            _LATB15 = 0;
+             _LATB14 = 1;
+            if(steps > N) {
+                
+                
+                delay();
+                
+                _LATA1 = 1; // LEFT clockwise
+                _LATB9 = 1; //  RIGHT clockwise
+                OC1RS = 77 * 1.25; 
+                OC1R = OC1RS * 0.5;
+                OC2RS = 77 * 1.25;
+                OC2R = OC1RS * 0.5;
+                steps = 0;
+                x = 0;
+                N = 3*200;
+                
+                
+                // Change state
+                state = FORWARD;
+            }
+        }
+    }
+    
+    
+    
+    return 0;
+}
+
+void delay(void) {
+    TMR1 = 0;
+    while (TMR1 < time/2) {
+        OC1R = 0;
+        OC2R = 0;
+    }
+}
