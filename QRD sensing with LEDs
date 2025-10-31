@@ -1,0 +1,132 @@
+// This program causes the LED to light up when an
+// input voltage reaches a threshold.
+//
+// This program reads from multiple A/D channels in
+// scan mode.
+//
+// The A/D operates in automatic mode.
+//
+// Connections:
+//      4:  LED                   (digital output -- RB0)
+//      14: LED                   (digital output -- RA6)
+//      16: QRD1
+//      17: QRD2
+//      18: QRD3
+
+
+#include "xc.h"
+
+//#pragma config FNOSC = FRCDIV   // 8 MHz FRC oscillator with postscaler
+#pragma config FNOSC = LPRC     // 31 kHz LPRC oscillator
+#pragma config OSCIOFNC = OFF   // Turn off clock output on pin 8
+#pragma config SOSCSRC = DIG    // Turn off secondary oscillator on pins 9&10
+
+void config_ad(void);
+
+int main()
+{    
+    // Postscale oscillator
+    //_RCDIV = 0b011;             // Divide-by-8 postscaler
+    _RCDIV = 0b000;             // Divide-by-0 postscaler
+    
+    // Configure pin 14 (RA6) as digital out for LED
+    _TRISA6 = 0;
+    _LATA6 = 0;
+    
+    // Configure pin 4 (RB0) as digital out for LED
+    _TRISB0 = 0;
+    _LATB0 = 0;
+    
+    // Configure pin 16 (RB13) as analog input for QRD1
+    _TRISA3 = 1;
+    _ANSA3 = 1;
+    
+    // Configure pin 17 (RB14) as analog input for QRD2
+    _TRISB2 = 1;
+    _ANSB2 = 1;
+    
+    // Configure pin 18 (RB15) as analog input for QRD3
+    _TRISB2 = 1;
+    _ANSB2 = 1;
+       
+    // Configure peripherals
+    config_ad(); 
+
+    // above threshold is black
+    // below threshold is white
+        
+    while(1)
+    {
+        if (ADC1BUF10 <= 1240 )//&& ADC1BUF11 >= 1240 && ADC1BUF9 >= 1240) // if QRD2 (middle) sees white
+        {
+            _LATA6 = 1; // left LED on
+            _LATB0 = 1; // right LED on
+        }
+        else if (ADC1BUF11 <= 1240 )//&& ADC1BUF10 >= 1240 && ADC1BUF9 >= 1240) // if QRD1 (left) sees white
+        {
+            _LATB0 = 1; // right LED on
+            _LATA6 = 0; // left LED off
+        }
+        else if (ADC1BUF9 <= 1240 )//&& ADC1BUF10 >= 1240 && ADC1BUF11 >= 1240) // if QRD3 (right) sees white
+        {
+            _LATB0 = 0; // right LED off
+            _LATA6 = 1; // left LED on
+        }
+        else {
+            _LATB0 = 0; // right LED off
+            _LATA6 = 0; // left LED off
+        }
+    }
+    
+    return 0;
+}
+
+void config_ad(void)
+{
+    
+    _ADON = 0;          // AD1CON1<15> -- Turn off A/D during config
+    
+    // Clear all A/D registers
+    AD1CON1 = 0; 
+    AD1CON2 = 0; 
+    AD1CON3 = 0; 
+    AD1CON5 = 0; 
+    AD1CSSL = 0; 
+    AD1CSSH = 0; 
+    
+    // AD1CON1 register
+    _ADSIDL = 0;    // AD1CON1<13> -- A/D continues while in idle mode
+    _MODE12 = 1;    // AD1CON1<10> -- 12-bit A/D operation
+    _FORM = 0;      // AD1CON1<9:8> -- Unsigned integer output
+    _SSRC = 7;      // AD1CON1<7:4> -- Auto conversion (internal counter)
+    _ASAM = 1;      // AD1CON1<2> -- Auto sampling
+
+    // AD1CON2 register
+    _PVCFG = 0;     // AD1CON2<15:14> -- Use VDD as positive ref voltage
+    _NVCFG = 0;     // AD1CON2<13> -- Use VSS as negative ref voltage
+    _BUFREGEN = 1;  // AD1CON2<11> -- Result appears in buffer
+                    // location corresponding to channel, e.g., AN12
+                    // results appear in ADC1BUF12
+    _CSCNA = 1;     // AD1CON2<10> -- Does not scan inputs specified in AD1CSSx
+                    // registers
+    _SMPI = 2;      // AD1CON2<6:2> -- Results sent to buffer after n conversion
+                    // For example, if you are sampling 4 channels, you
+                    // should have _SMPI = 3;
+    _ALTS = 0;      // AD1CON2<0> -- Sample MUXA only
+
+    // AD1CON3 register
+    _ADRC = 0;      // AD1CON3<15> -- Use system clock
+    _SAMC = 1;      // AD1CON3<12:8> -- Auto sample every A/D period TAD
+    _ADCS = 0;      // AD1CON3<7:0> -- A/D period TAD = TCY
+    
+    // AD1CHS register
+    _CH0NA = 0;     // AD1CHS<7:5> -- Measure voltages relative to VSS
+    _CH0SA = 14;    // AD1CHS<4:0> -- Use AN2 (pin 4) as positive input
+    
+    // AD1CSSL register
+    _CSS11 = 1; // scan pin 16
+    _CSS10 = 1; // scan pin 17
+    _CSS9 = 1; //scan pin 18
+    
+    _ADON = 1;      // AD1CON1<15> -- Turn on A/D
+}
