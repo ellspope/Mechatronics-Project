@@ -6,6 +6,10 @@
 
 void config_ad(void);
 
+int fast = 77 * 0.75 * 0.5;
+int reg = 77 * 0.5;
+int slow = 77 * 2 * 0.5;
+
 int main(void)
 {    
     // Postscale oscillator
@@ -33,6 +37,10 @@ int main(void)
     // Configure pin 18 (RB15) as analog input for QRD3
     _TRISB2 = 1;
     _ANSB2 = 1;
+    
+    // Pin 2 is our debug LED
+    _TRISA0 = 0; // output
+    _ANSA0 = 0; // digital
        
     // Configure peripherals
     config_ad(); 
@@ -71,28 +79,31 @@ int main(void)
         if (ADC1BUF10 <= 1240 )//&& ADC1BUF11 >= 1240 && ADC1BUF9 >= 1240) // if QRD2 (middle) sees white
         {
             // Both wheels on
-            OC1RS = 77 * 1.25 ; // left on
+            _LATA0 = 0; // LED off
+            OC1RS = reg ; // left on
             OC1R = OC1RS * 0.5; // 50% duty cycle
-            OC2RS = 77 * 1.25 ; // right on
-            OC2R = OC1RS * 0.5; // 50% duty cycle
+            OC2RS = reg ; // right on
+            OC2R = OC2RS * 0.5; // 50% duty cycle
         }
         else if (ADC1BUF11 <= 1240 )//&& ADC1BUF10 >= 1240 && ADC1BUF9 >= 1240) // if QRD1 (left) sees white
         {
             // Right wheel on, left wheel slower
-            OC1RS = 77 * 2 ; // left slower
+            _LATA0 = 1; // LED on
+            OC1RS = slow ; // left slower
             OC1R = OC1RS * 0.5; // 50% duty cycle
             //OC1R = 0; // 0% duty cycle > left off
-            OC2RS = 77 * 1.25 ; // right on
-            OC2R = OC1RS * 0.5; // 50% duty cycle
+            OC2RS = fast ; // right faster
+            OC2R = OC2RS * 0.5; // 50% duty cycle
         }
         else if (ADC1BUF9 <= 1240 )//&& ADC1BUF10 >= 1240 && ADC1BUF11 >= 1240) // if QRD3 (right) sees white
         {
             // Left wheel on, right wheel slower
-            OC1RS = 77 * 1.25 ; // left on
+            _LATA0 = 0; // LED off
+            OC1RS = fast ; // left faster
             OC1R = OC1RS * 0.5; // 50% duty cycle
             //OC2R = 0; // 0% duty cycle > right off
-            OC2RS = 77 * 2 ; // right slower
-            OC2R = OC1RS * 0.5; // 50% duty cycle
+            OC2RS = slow ; // right slower
+            OC2R = OC2RS * 0.5; // 50% duty cycle
         }
         else {
             // Both wheels off
