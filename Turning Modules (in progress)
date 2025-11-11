@@ -1,0 +1,105 @@
+/*
+ * File:   turning.c
+ * Author: theiner1
+ *
+ * Created on November 10, 2025, 9:10 PM
+ */
+
+
+#include "xc.h"
+
+#pragma config FNOSC = LPFRC     // 500 kHz LPRC oscillator
+
+ //int time = (1937); // time for 1 sec
+ int steps = 0;
+ int N = 0;
+ int x = 0;
+ // OC1 Interrupt Service Routine
+
+void __attribute__((interrupt, no_auto_psv)) _OC1Interrupt(void)
+{
+    // When the OC1 Interrupt is activated, the code will jump up here
+    
+    // each time your PIC generates a PWM step
+    // Add code to clear the flag and increment the step count each time
+    _OC1IF = 0;
+     steps ++ ;
+    // this function is called
+}
+
+int main(void) {
+    
+     _RCDIV = 0b000; // SET POSTSCALER TO 0
+    
+ 
+    
+   // interrupt for pin 14
+    _OC1IE = 1; //ENABLE CN
+    _OC1IP = 6; // SET CN INTERRUPT PRIORITY
+    _OC1IF = 0; // CLEAR INTERRUPT FLAG
+    
+  
+    
+    // SET UP PWM
+    // PIN 14
+    OC1CON1 = 0;
+    OC1CON2 = 0;
+    OC1CON2bits.SYNCSEL = 0x1F;
+    OC1CON1bits.OCTSEL = 0b111; // sync to timer system
+    OC1CON1bits.OCM = 0b110; // sync to what timer
+    OC1CON2bits.OCTRIG = 0;
+    
+    // PIN 4
+    OC2CON1 = 0;
+    OC2CON2 = 0;
+    OC2CON2bits.SYNCSEL = 0x1F;
+    OC2CON1bits.OCTSEL = 0b111; // sync to timer system
+    OC2CON1bits.OCM = 0b110; // sync to what timer
+    OC2CON2bits.OCTRIG = 0;
+    
+    //SET UP DIRECTION PINS
+    _TRISA1 = 0; // pin 3 set as output
+    _ANSA1 = 0; // pin 3 set to digital
+    _TRISB9 = 0; // pin 13 set as output
+    // pin 13 set to digital
+    
+     // Configure Timer1
+    _TON = 1;       // Turn Timer1 on
+    _TCKPS = 0b01;  // PRESCALER 1:8
+    _TCS = 0;       // Internal clock source (FOSC/2)
+    TMR1 = 0;       // Reset Timer1
+    
+    OC1RS = 1249;
+    OC2RS = 1249;
+    
+     enum { FORWARD, LEFT, RIGHT, STOP } state;
+     state = STOP;
+     
+     while(1){
+         
+         if (state == STOP){
+            OC1R = 0; 
+            OC2R = 0;
+         }
+         else if (state == FORWARD){
+             OC1R = .5;
+             OC2R = .5;
+             _LATA1 = 1; // LEFT clockwise
+             _LATB9 = 1; //  RIGHT clockwise
+         }
+         else if (state == LEFT){
+             OC1R = .5;
+             OC2R = .5;
+             _LATA1 = 0; // LEFT counter clockwise
+             _LATB9 = 1; //  RIGHT clockwise
+         }
+         else if (state == RIGHT){
+             OC1R = .5;
+             OC2R = .5;
+             _LATA1 = 1; // LEFT clockwise
+             _LATB9 = 0; //  RIGHT counter clockwise
+         }
+     }
+    
+    return 0;
+}
