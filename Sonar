@@ -1,0 +1,193 @@
+
+/*
+ * File:   Ultrasonic Sensor.c
+ * Author: taylo
+ *
+ * Created on November 3, 2025, 8:36 PM
+ */
+
+
+#include "xc.h"
+
+#pragma config FNOSC = LPFRC     // 500 kHz LPRC oscillator
+
+int main(void) {
+   
+    // Post-scale oscillator
+    _RCDIV = 0b000;             // Divide-by-1 post-scaler
+   
+    // SET UP PWM FOR PIN 14
+    OC1CON1 = 0;
+    OC1CON2 = 0;
+    OC1CON2bits.SYNCSEL = 0x1F;
+    OC1CON1bits.OCTSEL = 0b111; // sync to timer system
+    OC1CON1bits.OCM = 0b110; // sync to what timer
+    OC1CON2bits.OCTRIG = 0;
+   
+    // SET UP PWM FOR PIN 4
+    OC2CON1 = 0;
+    OC2CON2 = 0;
+    OC2CON2bits.SYNCSEL = 0x1F;
+    OC2CON1bits.OCTSEL = 0b111; // sync to timer system
+    OC2CON1bits.OCM = 0b110; // sync to what timer
+    OC2CON2bits.OCTRIG = 0;
+   
+    //SET UP DIRECTION PINS
+    _TRISA1 = 0; // pin 3 set as output
+    _ANSA1 = 0; // pin 3 set to digital
+    _TRISB9 = 0; // pin 13 set as output
+    // pin 13 set to digital
+   
+    // set sonar pins
+    _TRISA2 = 0; //pin 7 set as output (trig)
+    _TRISB2 = 1; // pin 6 set as input (echo 1, RIGHT)
+    _TRISA4 = 1; // pin 10 set as input (echo 2, FRONT)
+   
+    _ANSA2 = 0; // pin 7 set to digital
+    _ANSB2 = 0; // pin 6 set to digital
+    // pin 10 set to digital
+   
+   
+       // Configure Timer1
+    _TON = 1;       // Turn Timer1 on
+    _TCKPS = 0b00;  // Pre-scaling 1:1
+    _TCS = 0;       // Internal clock source (FOSC/2)
+    TMR1 = 0;       // Reset Timer1
+    _TON = 0;       // Turn Timer1 off
+   
+   
+    int x_right;
+    int x_front;
+    
+    OC1RS = 1249;
+    OC2RS = 1249;
+    OC1R = 0;
+    OC2R = 0;
+    
+    // States
+    enum { STOP, STRAIGHT, LEFT, RIGHT } state;
+   
+    state = STOP;           // Set state to STOP
+   
+    while(1){
+       
+         // State machine
+        if (state == STOP)
+        {
+            // measure right distance
+             _LATA2 = 0;  // set trig pin to low
+            _TON = 1;   // start timer
+            _LATA2 = 1;  //set trig high
+            if (TMR1 > 30){
+                _LATA2 = 0;  //set trig low
+            }
+    
+            while (_RB2 == 0){
+              //wait
+            }
+            TMR1 = 0;       // Reset Timer1
+            while  (_RB2 == 1){
+        // wait
+            }
+            x_right = TMR1;
+    
+            TMR1 = 0;       // Reset Timer1  
+            while(TMR1 < 16000){
+            //wait
+            }
+            _TON = 0;       // Turn Timer1 off
+            TMR1 = 0;       // Reset Timer1
+            
+            // measure front distance
+            _LATA2 = 0;  // set trig pin to low
+            _TON = 1;   // start timer
+            _LATA2 = 1;  //set trig high
+            if (TMR1 > 30){
+                _LATA2 = 0;  //set trig low
+            }
+    
+            while (_RA4 == 0){
+              //wait
+            }
+            TMR1 = 0;       // Reset Timer1
+            while  (_RA4 == 1){
+        // wait
+            }
+            x_right = TMR1;
+    
+            TMR1 = 0;       // Reset Timer1  
+            while(TMR1 < 16000){
+            //wait
+            }
+            _TON = 0;       // Turn Timer1 off
+            TMR1 = 0;       // Reset Timer1
+            
+             
+       
+            //move states
+            if (x_front > 530) //13 inch threshold
+                {
+                    // Change state
+                    state = STRAIGHT;            
+                }            
+                else if (x_front < 530 && x_right < 530){
+                    // Change state
+                    state = LEFT;
+                }
+                else if (x_front < 530 && x_right > 530){
+                    // Change state
+                    state = RIGHT;
+                }
+        }
+       
+        else if (state == STRAIGHT){
+            // go forward 24 in (.6096 m)
+            _LATA1 = 1;  // left clockwise
+            _LATB9 = 1;  // right clockwise
+            _TON = 1;   // start timer
+            while (TMR1 < 10000){
+                OC1R = 0.75;
+                OC2R = 0.75;
+            }
+            _TON = 0;       // Turn Timer1 off
+            TMR1 = 0;       // Reset Timer1
+    
+             // Change state
+            state = STOP;            
+            }      
+       
+        else if (state == LEFT){
+            // rotate 90 degrees to the left
+            _LATA1 = 0;  // left clockwise
+            _LATB9 = 1;  // right clockwise
+            _TON = 1;   // start timer
+            while (TMR1 < 5000){
+                OC1R = 0.75;
+                OC2R = 0.75;
+            }
+            _TON = 0;       // Turn Timer1 off
+            TMR1 = 0;       // Reset Timer1
+
+             // Change state
+            state = STOP;            
+            }   
+
+        else if (state == RIGHT){
+            // rotate 90 degrees to the right
+            _LATA1 = 1;  // left clockwise
+            _LATB9 = 0;  // right clockwise
+            _TON = 1;   // start timer
+            while (TMR1 < 5000){
+                OC1R = 0.75;
+                OC2R = 0.75;
+            }
+            _TON = 0;       // Turn Timer1 off
+            TMR1 = 0;       // Reset Timer1
+    
+            // Change state
+            state = STOP;            
+            }    
+    }
+
+    return 0;
+}
