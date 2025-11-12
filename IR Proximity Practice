@@ -1,26 +1,196 @@
-
 #include "xc.h"
 
-int main(void) {
-    
-    TRISA = 0;
-    ANSA = 0;
-    _TRISA0 = 1;
-            
-            while(1) {
-                if (_RA0 == 0) {
-                    _LATA1 = 1;
+#pragma config FNOSC = LPFRC //choose the internal 500 kHz oscillator
+//#pragma config FNOSC = LPRC     // 31 kHz LPRC oscillator
+#pragma config OSCIOFNC = OFF   // Turn off clock output on pin 8
+#pragma config SOSCSRC = DIG    // Turn off secondary oscillator on pins 9&10
 
-                }
-                else {
-                    _LATA1 = 0;
-                }
+void config_ad(void);
+
+int fast = 1249 * 0.5 * 0.5 * 0.5;
+int reg =  1249 * 0.5 * 0.5; // 1249 is for PWM frequency of 200 Hz (motor speed of 1 rev/s, for full-step)
+int slow = 1249 * 0.5 * 0.5 * 1.5;
+
+int main(void)
+{    
+    // Postscale oscillator
+    _RCDIV = 0b000;             // Divide-by-1 postscaler
     
     
+    // CONFIGURE PINS
     
-            }
+    // Pin 3 determines direction of left motor
+    _ANSA1 = 0; //pin 3 is digital
+    _TRISA1 = 0; //pin 3 is an output
+    
+    // Pin 13 determines direction of right motor
+    //pin 13 defaults to digital, it cannot do analog, so we don't have to configure that part of it
+    _TRISB9 = 0; //pin 13 is an output
+    
+    // Configure pin 16 (RB13) as analog input for QRD1
+    _TRISA3 = 1;
+    _ANSA3 = 1;
+    
+    // Configure pin 17 (RB14) as analog input for QRD2
+    _TRISB2 = 1;
+    _ANSB2 = 1;
+    
+    // Configure pin 18 (RB15) as analog input for QRD3
+    _TRISB2 = 1;
+    _ANSB2 = 1;
+    
+    // Pin 2 is our debug LED
+    _TRISA0 = 0; // output
+    _ANSA0 = 0; // digital
+       
+    // read op amp
+    
+    _ANSA3 = 1; // analog
+    _TRISA3 = 1; // input
     
     
+    // Configure peripherals
+    config_ad(); 
+    
+    // Configure PWM for pin 14 (LEFT motor)
+    OC1CON1 = 0;                // Clear all bits of OC1CON1
+    OC1CON2 = 0;                // Clear all bits of OC1CON2
+    OC1CON1bits.OCTSEL = 0b111; // System clock as timing source
+    OC1CON2bits.SYNCSEL = 0x1F; // Self-synchronization
+    OC1CON2bits.OCTRIG = 0;     // Synchronization mode
+    OC1CON1bits.OCM = 0b110;    // Edge-aligned PWM mode
+    
+    // Configure PWM for pin 4 (RIGHT motor)
+    OC2CON1 = 0;                // Clear all bits of OC1CON1
+    OC2CON2 = 0;                // Clear all bits of OC1CON2
+    OC2CON1bits.OCTSEL = 0b111; // System clock as timing source
+    OC2CON2bits.SYNCSEL = 0x1F; // Self-synchronization
+    OC2CON2bits.OCTRIG = 0;     // Synchronization mode
+    OC2CON1bits.OCM = 0b110;    // Edge-aligned PWM mode
+    
+    // Initialize OC1RS and OC1R
+    OC1RS = 0; 
+    OC1R = OC1RS * 0.5; // 50% duty cycle
+    OC2RS = 0;
+    OC2R = OC1RS * 0.5; // 50% duty cycle
+    
+    // Set wheel direction
+    _LATA1 = 0; // LEFT (pin 3) clockwise
+    _LATB9 = 0; //  RIGHT (pin 13) clockwise
+
+    
+    
+    // above threshold is black
+    // below threshold is white
+        
+    while(1)
+    {
+        if (ADC1BUF10 <= 1240 )//&& ADC1BUF11 >= 1240 && ADC1BUF9 >= 1240) // if QRD2 (middle) sees white
+        {
+            // Both wheels on
+            _LATA0 = 0; // LED off
+            OC1RS = reg ; // left on
+            OC1R = OC1RS * 0.5; // 50% duty cycle
+            OC2RS = reg ; // right on
+            OC2R = OC2RS * 0.5; // 50% duty cycle
+        }
+        else if (ADC1BUF11 <= 1240 )//&& ADC1BUF10 >= 1240 && ADC1BUF9 >= 1240) // if QRD1 (left) sees white
+        {
+            // Right wheel on, left wheel slower
+            _LATA0 = 0     ; // LED on
+            OC1RS = slow ; // left slower
+            OC1R = OC1RS * 0.5; // 50% duty cycle
+            //OC1R = 0; // 0% duty cycle > left off
+            OC2RS = fast ; // right faster
+            OC2R = OC2RS * 0.5; // 50% duty cycle
+        }
+        else if (ADC1BUF9 <= 1240 )//&& ADC1BUF10 >= 1240 && ADC1BUF11 >= 1240) // if QRD3 (right) sees white
+        {
+            // Left wheel on, right wheel slower
+            _LATA0 = 0; // LED off
+            OC1RS = fast ; // left faster
+            OC1R = OC1RS * 0.5; // 50% duty cycle
+            //OC2R = 0; // 0% duty cycle > right off
+            OC2RS = slow ; // right slower
+            OC2R = OC2RS * 0.5; // 50% duty cycle
+        }
+        
+//        if (ADC1BUF14 >= 620 )
+//        {
+//            // Left wheel on, right wheel slower
+//            _LATA0 = 1; // LED 
+//            
+//            OC1R = 0; // 0% duty cycle
+//            OC2R = 0; // 0% duty cycle > right off
+//            
+//        }
+        
+//        else if (ADC1BUF9 >= 1240 && ADC1BUF10 >= 1240 && ADC1BUF11 >= 1240) // if QRDs all see black
+//        {
+//            // Left wheel on, right wheel slower
+//            _LATA0 = 0; // LED off
+//            OC1RS = slow ; // left 
+//            OC1R = OC1RS * 0.5; // 50% duty cycle
+//            OC2RS = fast ; // right slower
+//            OC2R = OC2RS * 0.5; // 50% duty cycle
+//        }
+        else {
+            // Both wheels off
+            OC1R = 0; // 0% duty cycle > left off
+            OC2R = 0; // 0% duty cycle > right off
+        }
+    }
     
     return 0;
+}
+
+void config_ad(void)
+{
+    
+    _ADON = 0;          // AD1CON1<15> -- Turn off A/D during config
+    
+    // Clear all A/D registers
+    AD1CON1 = 0; 
+    AD1CON2 = 0; 
+    AD1CON3 = 0; 
+    AD1CON5 = 0; 
+    AD1CSSL = 0; 
+    AD1CSSH = 0; 
+    
+    // AD1CON1 register
+    _ADSIDL = 0;    // AD1CON1<13> -- A/D continues while in idle mode
+    _MODE12 = 1;    // AD1CON1<10> -- 12-bit A/D operation
+    _FORM = 0;      // AD1CON1<9:8> -- Unsigned integer output
+    _SSRC = 7;      // AD1CON1<7:4> -- Auto conversion (internal counter)
+    _ASAM = 1;      // AD1CON1<2> -- Auto sampling
+
+    // AD1CON2 register
+    _PVCFG = 0;     // AD1CON2<15:14> -- Use VDD as positive ref voltage
+    _NVCFG = 0;     // AD1CON2<13> -- Use VSS as negative ref voltage
+    _BUFREGEN = 1;  // AD1CON2<11> -- Result appears in buffer
+                    // location corresponding to channel, e.g., AN12
+                    // results appear in ADC1BUF12
+    _CSCNA = 1;     // AD1CON2<10> -- Does not scan inputs specified in AD1CSSx
+                    // registers
+    _SMPI = 3;      // AD1CON2<6:2> -- Results sent to buffer after n conversion
+                    // For example, if you are sampling 4 channels, you
+                    // should have _SMPI = 3;
+    _ALTS = 0;      // AD1CON2<0> -- Sample MUXA only
+
+    // AD1CON3 register
+    _ADRC = 0;      // AD1CON3<15> -- Use system clock
+    _SAMC = 1;      // AD1CON3<12:8> -- Auto sample every A/D period TAD
+    _ADCS = 0;      // AD1CON3<7:0> -- A/D period TAD = TCY
+    
+    // AD1CHS register
+    _CH0NA = 0;     // AD1CHS<7:5> -- Measure voltages relative to VSS
+    _CH0SA = 14;    // AD1CHS<4:0> -- Use AN2 (pin 4) as positive input
+    
+    // AD1CSSL register
+    _CSS11 = 1; // scan pin 16
+    _CSS10 = 1; // scan pin 17
+    _CSS9 = 1; //scan pin 18
+    _CSS14 = 1; // scan pin 8
+    
+    _ADON = 1;      // AD1CON1<15> -- Turn on A/D
 }
