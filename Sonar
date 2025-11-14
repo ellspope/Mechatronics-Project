@@ -130,14 +130,14 @@ int main(void) {
                     // Change state
                     state = STRAIGHT;            
                 }            
-                else if (x_front < 530 && x_right < 530){
-                    // Change state
-                    state = LEFT;
-                }
-                else if (x_front < 530 && x_right > 530){
-                    // Change state
-                    state = RIGHT;
-                }
+             else if (x_front < 530 && x_right < 530){
+                 // Change state
+                 state = LEFT;
+             }
+             else if (x_front < 530 && x_right > 530){
+                 // Change state
+                 state = RIGHT;
+             }
         }
        
         else if (state == STRAIGHT){
