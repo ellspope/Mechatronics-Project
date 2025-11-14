@@ -1,0 +1,115 @@
+/*
+ * File:   sonartest.c
+ * Author: theiner1
+ *
+ * Created on November 10, 2025, 7:32 PM
+ */
+
+
+#include "xc.h"
+
+#pragma config FNOSC = LPFRC     // 500 kHz LPRC oscillator
+#pragma config OSCIOFNC = OFF   // Turn off clock output on pin 8
+#pragma config SOSCSRC = DIG    // Turn off secondary oscillator on pins 9&10
+
+int steps = 0;
+int N = 0;  // Desired steps
+int x_right = 0;  // Distance to right
+int x_front = 0;  // Distance to left
+
+int main(void) {
+   
+    // Post-scale oscillator
+    _RCDIV = 0b000;             // Divide-by-1 post-scaler
+   
+    _TRISA1 = 0;
+    _ANSA1 = 0;
+    
+    _TRISB0 = 0;
+    _ANSB0 = 0;
+   
+     // set sonar pins
+    _TRISA2 = 0; //pin 7 set as output (trig)
+    _TRISB2 = 1; // pin 6 set as input (echo 1, RIGHT)
+    _TRISB1 = 1; //pin 10 set as input (echo 2, FRONT)
+   
+    _ANSA2 = 0; // pin 7 set to digital
+    _ANSB2 = 0; // pin 6 set to digital
+    _ANSB1 = 0; //pin 10 set to digital
+   
+   
+       // Configure Timer1
+    _TON = 1;       // Turn Timer1 on
+    _TCKPS = 0b00;  // Pre-scaling 1:1
+    _TCS = 0;       // Internal clock source (FOSC/2)
+    TMR1 = 0;       // Reset Timer1
+    _TON = 0;       // Turn Timer1 off
+   
+    while(1){
+       
+   
+   // measure right
+    _LATA2 = 0;  // set trig pin to low
+    _TON = 1;   // start timer
+    _LATA2 = 1;  //set trig high
+    if (TMR1 > 30){
+        _LATA2 = 0;  //set trig low
+    }
+   
+    while (_RB2 == 0){
+        //wait
+    }
+    TMR1 = 0;       // Reset Timer1
+    while  (_RB2 == 1){
+        // wait
+    }
+    x_right = TMR1;
+   
+    TMR1 = 0;       // Reset Timer1  
+    while(TMR1 < 16000){
+        //wait
+    }
+    _TON = 0;       // Turn Timer1 off
+    TMR1 = 0;       // Reset Timer1
+   
+    // measure front distance
+    _LATA2 = 0;  // set trig pin to low
+    _TON = 1;   // start timer
+    _LATA2 = 1;  //set trig high
+    if (TMR1 > 30){
+        _LATA2 = 0;  //set trig low
+    }
+
+    while (_RB1 == 0){
+      //wait
+    }
+    TMR1 = 0;       // Reset Timer1
+    while  (_RB1 == 1){
+// wait
+    }
+    x_front = TMR1;
+
+    TMR1 = 0;       // Reset Timer1  
+    while(TMR1 < 16000){
+    //wait
+    }
+    _TON = 0;       // Turn Timer1 off
+    TMR1 = 0;       // Reset Timer1
+            
+   
+    if(x_front > 520){
+        _LATA1 = 1;
+        _LATB0 = 1;
+       
+    }
+    else if(x_front < 520 && x_right > 520){
+        _LATA1 = 0;
+        _LATB0 = 1;
+    }
+    else if(x_front < 520 && x_right < 520){
+        _LATA1 = 1;
+        _LATB0 = 0;
+    }
+    }
+    return 0;
+}
