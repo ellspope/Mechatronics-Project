@@ -28,16 +28,16 @@ int main(void)
     _TRISB9 = 0; //pin 13 is an output
     
     // Configure pin 16 (RB13) as analog input for QRD1
-    _TRISA3 = 1;
-    _ANSA3 = 1;
+    _TRISB13 = 1;
+    _ANSB13 = 1;
     
     // Configure pin 17 (RB14) as analog input for QRD2
-    _TRISB2 = 1;
-    _ANSB2 = 1;
+    _TRISB14 = 1;
+    _ANSB14 = 1;
     
     // Configure pin 18 (RB15) as analog input for QRD3
-    _TRISB2 = 1;
-    _ANSB2 = 1;
+    _TRISB15 = 1;
+    _ANSB15 = 1;
     
     // Pin 2 is our debug LED
     _TRISA0 = 0; // output
