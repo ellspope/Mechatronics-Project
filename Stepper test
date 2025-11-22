@@ -5,13 +5,6 @@
 #pragma config SOSCSRC = DIG    // Turn off secondary oscillator on pins 9&10
 
 
-void __attribute__((interrupt, no_auto_psv)) _OC1Interrupt(void)
-{
-
-    _OC1IF = 0;
-     steps ++ ;
-    // this function is called
-}
 
 void delay(void);
 
@@ -77,21 +70,7 @@ int main() {
         OC1R = OC1RS * 0.5;
         _LATA1 = 1; //  LEFT clockwise
         _LATB9 = 1; //  RIGHT clockwise
-        
-        delay();
-        
-        _LATA1 = 0; //  LEFT clockwise
-        _LATB9 = 0; //  RIGHT clockwise
+
     }
         return 0;
 }
-
-void delay(void) {
-    TMR1 = 0;
-    while (TMR1 < time/2) {
-        OC1R = 0;
-        OC2R = 0;
-    }
-}
-
-
