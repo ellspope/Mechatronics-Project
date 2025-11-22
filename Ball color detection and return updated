@@ -229,7 +229,8 @@ void turn_right(void) {
             OC2R = OC1RS * 0.5;
              
     }
-
+    OC1R = 0;
+    OC2R = 0;
            
              
 }
@@ -248,6 +249,8 @@ void turn_left(void) {
             OC2R = OC1RS * 0.5;
              
     }
+    OC1R = 0;
+    OC2R = 0;
 
            
              
