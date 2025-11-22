@@ -1,0 +1,97 @@
+#include "xc.h"
+
+#pragma config FNOSC = LPFRC //choose the internal 500 kHz oscillator
+#pragma config OSCIOFNC = OFF   // Turn off clock output on pin 8
+#pragma config SOSCSRC = DIG    // Turn off secondary oscillator on pins 9&10
+
+
+void __attribute__((interrupt, no_auto_psv)) _OC1Interrupt(void)
+{
+
+    _OC1IF = 0;
+     steps ++ ;
+    // this function is called
+}
+
+void delay(void);
+
+int time = 31250;
+
+int main() {
+ 
+    
+    
+     // CONFIGURE PINS
+  
+    // Pin 3 determines direction of left motor
+    _ANSA1 = 0; //pin 3 is digital
+    _TRISA1 = 0; //pin 3 is an output
+    
+    // Pin 13 determines direction of right motor
+    //pin 13 defaults to digital, it cannot do analog, so we don't have to configure that part of it
+    _TRISB9 = 0; //pin 13 is an output
+    
+    
+     // interrupt for pin 14
+    _OC1IE = 1; //ENABLE CN
+    _OC1IP = 6; // SET CN INTERRUPT PRIORITY
+    _OC1IF = 0; // CLEAR INTERRUPT FLAG
+    
+    
+     // Postscale oscillator
+    _RCDIV = 0b000;             // Divide-by-1 postscaler
+    
+
+    
+    // Configure PWM for pin 14 (LEFT motor)
+    OC1CON1 = 0;                // Clear all bits of OC1CON1
+    OC1CON2 = 0;                // Clear all bits of OC1CON2
+    OC1CON1bits.OCTSEL = 0b111; // System clock as timing source
+    OC1CON2bits.SYNCSEL = 0x1F; // Self-synchronization
+    OC1CON2bits.OCTRIG = 0;     // Synchronization mode
+    OC1CON1bits.OCM = 0b110;    // Edge-aligned PWM mode
+    
+    // Configure PWM for pin 4 (RIGHT motor)
+    OC2CON1 = 0;                // Clear all bits of OC1CON1
+    OC2CON2 = 0;                // Clear all bits of OC1CON2
+    OC2CON1bits.OCTSEL = 0b111; // System clock as timing source
+    OC2CON2bits.SYNCSEL = 0x1F; // Self-synchronization
+    OC2CON2bits.OCTRIG = 0;     // Synchronization mode
+    OC2CON1bits.OCM = 0b110;    // Edge-aligned PWM mode
+
+    // Initialize OC1RS and OC1R and 2
+    OC1RS = 0; 
+    OC1R = OC1RS * 0.5; // 50% duty cycle
+    OC2RS = 0;
+    OC2R = OC1RS * 0.5; // 50% duty cycle
+    
+    // Configure Timer1
+    _TON = 1; // Turn Timer1 on
+    _TCS = 0; // Internal clock source (F_OSC/2)
+    _TCKPS = 0b10; // 1:64 prescaling
+    TMR1 = 0; // Reset Timer1
+
+    
+    while (1) {
+        OC1RS = 1249;
+        OC1R = OC1RS * 0.5;
+        _LATA1 = 1; //  LEFT clockwise
+        _LATB9 = 1; //  RIGHT clockwise
+        
+        delay();
+        
+        _LATA1 = 0; //  LEFT clockwise
+        _LATB9 = 0; //  RIGHT clockwise
+    }
+        return 0;
+}
+
+void delay(void) {
+    TMR1 = 0;
+    while (TMR1 < time/2) {
+        OC1R = 0;
+        OC2R = 0;
+    }
+}
+
+
