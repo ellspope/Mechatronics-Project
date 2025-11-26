@@ -1,0 +1,146 @@
+/*
+ * File:   laser_emiter.c
+ * Author: ellspope
+ *
+ * Created on November 26, 2025, 9:14 AM
+ */
+//#pragma config ICS = PGx3
+
+#include "xc.h"
+
+#pragma config FNOSC = LPFRC //choose the internal 500 kHz oscillator
+#pragma config OSCIOFNC = OFF   // Turn off clock output on pin 8
+#pragma config SOSCSRC = DIG    // Turn off secondary oscillator on pins 9&10
+
+
+int pause = 195; // between each servo step, waits 0.05 sec
+int threshold = 2482/2; // IR diode reads at least 2 volts
+int step = 5; // add to OC3R to increase angle by this step
+int x = 120;
+void delay(void);
+void config_ad(void);
+void move_servo(void);
+
+int main(void) {
+    
+    config_ad();
+    
+      // Configure oscillator postscaler. We don't need any postscaler, but 
+    //default is divide by 2.
+    _RCDIV = 0b000; // divide by 1 > F_OSC=500 kHz
+    
+    
+     // Configure PWM for pin 5
+    OC3CON1 = 0;                // Clear all bits of OC3CON1
+    OC3CON2 = 0;                // Clear all bits of OC3CON2
+    OC3CON1bits.OCTSEL = 0b111; // System clock as timing source
+    OC3CON2bits.SYNCSEL = 0x1F; // Self-synchronization
+    OC3CON2bits.OCTRIG = 0;     // Synchronization mode
+    OC3CON1bits.OCM = 0b110;    // Edge-aligned PWM mode
+    
+      // Configure Timer1
+    _TON = 1; // Turn Timer1 on
+    _TCS = 0; // Internal clock source (F_OSC/2)
+    _TCKPS = 0b10; // 1:64 prescaling
+    PR1 = 35156; // Set period register to 9s. Timer resets at 9s. 
+    TMR1 = 0; // Reset Timer1
+    
+    OC3RS = 4999;
+    
+    //initialize position
+    OC3R = 125; // this sets it to 0 degrees. 0 degrees is when the pwm period is 0.5 ms. 
+    delay(); // give time for the servo to go to that position before continuing code
+    
+    // CONFIGURE IR DIODE
+    _TRISB4 = 1;
+    _ANSB4 = 1;
+    
+    // LED
+    
+    _TRISB2 = 0;
+    _ANSB2 = 0;
+    
+    while(1) {
+        
+        if (ADC1BUF15 < threshold) { // checks to see if IR diode doesn't sense the IR emitter
+            move_servo();
+            _LATB2 = 1;
+        }
+        else {
+            _LATB2 = 0;
+            break;
+        }
+        
+    }
+    
+    while(1) { // this makes it stop moving once it sense the light
+    OC3R = 0;
+    _LATB2 = 0;
+    }
+    return 0;
+}
+
+void delay(void) {
+    TMR1 = 0;
+    while (TMR1 < pause) {
+       // do nothing
+    }
+} // I added this function to give the servo time to move to it's angle before the code continues
+
+
+void config_ad(void)
+{
+    
+    _ADON = 0;          // AD1CON1<15> -- Turn off A/D during config
+    
+    // Clear all A/D registers
+    AD1CON1 = 0; 
+    AD1CON2 = 0; 
+    AD1CON3 = 0; 
+    AD1CON5 = 0; 
+    AD1CSSL = 0; 
+    AD1CSSH = 0; 
+    
+    // AD1CON1 register
+    _ADSIDL = 0;    // AD1CON1<13> -- A/D continues while in idle mode
+    _MODE12 = 1;    // AD1CON1<10> -- 12-bit A/D operation
+    _FORM = 0;      // AD1CON1<9:8> -- Unsigned integer output
+    _SSRC = 7;      // AD1CON1<7:4> -- Auto conversion (internal counter)
+    _ASAM = 1;      // AD1CON1<2> -- Auto sampling
+
+    // AD1CON2 register
+    _PVCFG = 0;     // AD1CON2<15:14> -- Use VDD as positive ref voltage
+    _NVCFG = 0;     // AD1CON2<13> -- Use VSS as negative ref voltage
+    _BUFREGEN = 1;  // AD1CON2<11> -- Result appears in buffer
+                    // location corresponding to channel, e.g., AN12
+                    // results appear in ADC1BUF12
+    _CSCNA = 1;     // AD1CON2<10> -- Does not scan inputs specified in AD1CSSx
+                    // registers
+    _SMPI = 0;      // AD1CON2<6:2> -- Results sent to buffer after n conversion
+                    // For example, if you are sampling 4 channels, you
+                    // should have _SMPI = 3;
+    _ALTS = 0;      // AD1CON2<0> -- Sample MUXA only
+
+    // AD1CON3 register
+    _ADRC = 0;      // AD1CON3<15> -- Use system clock
+    _SAMC = 1;      // AD1CON3<12:8> -- Auto sample every A/D period TAD
+    _ADCS = 0;      // AD1CON3<7:0> -- A/D period TAD = TCY
+    
+    // AD1CHS register
+    _CH0NA = 0;     // AD1CHS<7:5> -- Measure voltages relative to VSS
+    _CH0SA = 15;    // AD1CHS<4:0> -- Use AN15 (pin 9) as positive input
+    
+    // AD1CSSL register
+    _CSS15 = 1; // scan pin 9
+
+    
+    _ADON = 1;      // AD1CON1<15> -- Turn on A/D
+}
+
+void move_servo(void) // what this function does is increment the stepping of the servo motor. It will make the angle bigger and bigger
+{
+    
+    OC3R = x + step;
+    x = OC3R;
+    delay();
+}
