@@ -113,7 +113,7 @@ int main(void) {
             while  (_RA4 == 1){
         // wait
             }
-            x_right = TMR1;
+            x_front = TMR1;
     
             TMR1 = 0;       // Reset Timer1  
             while(TMR1 < 16000){
