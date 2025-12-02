@@ -1,0 +1,43 @@
+#pragma once
+#include "xc.h"
+#include "line_follow.h"
+
+// Function prototypes
+void line_follow(void);
+void ball_collect(void);
+void ball_return(void);
+void nav_canyon(void);
+void transmit_sig(void);
+
+// States
+enum {LINEFOLLOW, COLLECT, RETURN, CANYON, TRANSMIT} state;
+
+int main(void) {
+    
+    // Initialize state
+    state = LINEFOLLOW;
+    
+    while (1)
+    {
+        switch(state) 
+        {
+            case LINEFOLLOW: // If current_state == LINEFOLLOW
+                line_follow();
+                break;
+            case COLLECT: // If current_state == COLLECT
+                ball_collect();
+                break;
+            case RETURN: // If current_state == RETURN
+                ball_return();
+                break;
+            case CANYON: // If current_state == CANYON
+                nav_canyon();
+                break;
+            case TRANSMIT: // If current_state == TRANSMIT
+                transmit_sig();
+                break;
+        }
+    }
+    
+    return 0;
+}
