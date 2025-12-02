@@ -8,9 +8,9 @@ void config_pins(void);
 void config_ad(void);
 void config_pwm(void);
 
-int fast = 1249 * 0.5 * 0.5 * 1.25 * 0.5;
-int reg =  1249 * 0.5 * 0.5 * 1.25; // 1249 is for PWM frequency of 200 Hz (motor speed of 1 rev/s, for full-step)
-int slow = 1249 * 0.5 * 0.5 * 1.25 * 3;
+int fast = 1249 * 0.5 * 0.5 * 1.25 * 0.5 * 0.5;
+int reg =  1249 * 0.5 * 0.5 * 1.25 * 0.5; // 1249 is for PWM frequency of 200 Hz (motor speed of 1 rev/s, for full-step)
+int slow = 1249 * 0.5 * 0.5 * 1.25 * 3 * 0.5;
 
 int threshold = 2400;
 
@@ -28,6 +28,12 @@ int main(void)
     // Configure PWM
     config_pwm();
     
+     // Configure Timer1
+    _TON = 1;       // Turn Timer1 on
+   _TCKPS = 0b10; // 1:64 prescaler
+    _TCS = 0;       // Internal clock source (FOSC/2)
+    TMR1 = 0;       // Reset Timer1
+    
     // Initialize OC1RS and OC1R
     OC1RS = 0; 
     OC1R = OC1RS * 0.5; // 50% duty cycle
@@ -43,25 +49,25 @@ int main(void)
         
     while(1)
     {
-        if (ADC1BUF10 <= threshold )//&& ADC1BUF11 >= 1240 && ADC1BUF9 >= 1240) // if QRD2 (middle) sees white
+        if (ADC1BUF10 <= threshold && ADC1BUF11 >= 1240 && ADC1BUF9 >= 1240) // if QRD2 (middle) sees white
         {
             // Both wheels on
-            _LATA0 = 0; // LED off
+            _LATA0 = 1; // LED off
             OC1RS = reg ; // left on
             OC1R = OC1RS * 0.5; // 50% duty cycle
             OC2RS = reg ; // right on
             OC2R = OC2RS * 0.5; // 50% duty cycle
         }
-        else if (ADC1BUF11 <= threshold )//&& ADC1BUF10 >= 1240 && ADC1BUF9 >= 1240) // if QRD1 (left) sees white
+        else if (ADC1BUF11 <= threshold && ADC1BUF10 >= 1240 && ADC1BUF9 >= 1240) // if QRD1 (left) sees white
         {
             // Right wheel on, left wheel slower
-            _LATA0 = 1; // LED on
+            _LATA0 = 0; // LED on
             OC1RS = slow ; // left slower
             OC1R = OC1RS * 0.5; // 50% duty cycle
             OC2RS = fast ; // right faster
             OC2R = OC2RS * 0.5; // 50% duty cycle
         }
-        else if (ADC1BUF9 <= threshold )//&& ADC1BUF10 >= 1240 && ADC1BUF11 >= 1240) // if QRD3 (right) sees white
+        else if (ADC1BUF9 <= threshold && ADC1BUF10 >= 1240 && ADC1BUF11 >= 1240) // if QRD3 (right) sees white
         {
             // Left wheel on, right wheel slower
             _LATA0 = 0; // LED off
@@ -69,6 +75,30 @@ int main(void)
             OC1R = OC1RS * 0.5; // 50% duty cycle
             OC2RS = slow ; // right slower
             OC2R = OC2RS * 0.5; // 50% duty cycle
+        }
+        else if (ADC1BUF9 <= threshold && ADC1BUF11 <= threshold && ADC1BUF10 <= threshold ) // if all QRD'S see white
+        {
+            
+            _LATA0 = 1; // LED off
+            TMR1 = 0;
+            
+            while (TMR1 <= 1953/2) // go straight for a little bit 
+            {
+                OC1RS = reg ; // left slower
+                OC1R = OC1RS * 0.5; // 50% duty cycle
+                OC2RS = reg ; // right faster
+                OC2R = OC2RS * 0.5; // 50% duty cycle
+            }
+            TMR1 = 0;
+            
+            while (TMR1 <= 1953) { // turn left
+                _LATA1 = 0;
+                OC1RS = reg ; // left slower
+                OC1R = OC1RS * 0.5; // 50% duty cycle
+                OC2RS = reg ; // right faster
+                OC2R = OC2RS * 0.5; // 50% duty cycle
+            }
+            _LATA1 = 1;
         }
         else {
             // Both wheels off
@@ -81,7 +111,7 @@ int main(void)
             OC2R = OC2RS * 0.5; // 0% duty cycle > right off
         }
     
-    
+    }
     return 0;
 }
 
