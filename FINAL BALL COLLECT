@@ -14,8 +14,8 @@
 void config_pins(void);
 void config_ad(void);
 void config_pwm(void);
-void turn_right(void);
-void turn_left(void);
+void turn_right_collect(void);
+void turn_left_collect(void);
 void pause(void);
 void collect(void);
 void backup(void);
@@ -27,6 +27,14 @@ int slow = 1249 * 0.5 * 0.5 * 1.25 * 3 * 0.5;
 int sec = 3906;
 int dist = 3906 * 0.85;
 int threshold = 2400;
+
+
+
+// TRIGGER//
+// if (ADC1BUF4 >= 1861) then do this function
+
+
+
 
 int main(void) {
     
@@ -57,18 +65,18 @@ int main(void) {
     OC2RS = 0;
     OC2R = OC1RS * 0.5; // 50% duty cycle
     
+
     
-    
-    turn_right();
+    turn_right_collect();
     pause();
     collect();
     pause();
     backup();
     pause();
-    turn_left();
+    turn_left_collect();
     pause();
 
-    
+    state = LINEFOLLOW;
     
        
     
@@ -106,6 +114,12 @@ void config_pins(void) {
     // Pin 2 is our debug LED
     _TRISA0 = 0; // output
     _ANSA0 = 0; // digital
+    
+    // Configure pin 8 (RA3) as analog input for IR diode
+    _TRISB2 = 1;
+    _ANSB2 = 1;
+    
+    
 }
 
 void config_ad(void){
@@ -135,7 +149,7 @@ void config_ad(void){
                     // results appear in ADC1BUF12
     _CSCNA = 1;     // AD1CON2<10> -- Does not scan inputs specified in AD1CSSx
                     // registers
-    _SMPI = 2;      // AD1CON2<6:2> -- Results sent to buffer after n conversion
+    _SMPI = 4;      // AD1CON2<6:2> -- Results sent to buffer after n conversion
                     // For example, if you are sampling 4 channels, you
                     // should have _SMPI = 3;
     _ALTS = 0;      // AD1CON2<0> -- Sample MUXA only
@@ -153,6 +167,8 @@ void config_ad(void){
     _CSS11 = 1; // scan pin 16
     _CSS10 = 1; // scan pin 17
     _CSS9 = 1; //scan pin 18
+    _CSS4 = 1;
+    _CSS0 = 1;
     
     _ADON = 1;      // AD1CON1<15> -- Turn on A/D
 }
@@ -175,7 +191,7 @@ void config_pwm(void) {
     OC2CON1bits.OCM = 0b110;    // Edge-aligned PWM mode
 }
 
-void turn_right(void) {
+void turn_right_collect(void) {
     TMR1 = 0;
     _LATA0 = 0;
     _LATA1 = 1; // LEFT (pin 3) clockwise
@@ -188,7 +204,7 @@ void turn_right(void) {
             }
 }
 
-void turn_left(void) {
+void turn_left_collect(void) {
     TMR1 = 0;
     _LATA0 = 0;
     _LATA1 = 0; // LEFT (pin 3) clockwise
@@ -237,21 +253,3 @@ void backup(void) {
     } 
 }
 
-//void return_to_line(void) {
-//
-//    pause();
-//    _LATA0 = 1;
-//    while (ADC1BUF9 >= threshold && ADC1BUF11 >= threshold && ADC1BUF10 >= threshold) { // all QRD's see black go straight
-//                _LATA1 = 1; // LEFT (pin 3) clockwise
-//                _LATB9 = 1; //  RIGHT (pin 13) clockwise
-//                OC1RS = reg * 1.25 ; // left slower
-//                OC1R = OC1RS * 0.5; // 50% duty cycle
-//                OC2RS = reg * 1.25; // right faster
-//                OC2R = OC2RS * 0.5; // 50% duty cycle
-//    }
-//    pause();
-//    turn_right();
-//    OC1RS = 0;
-//    OC2RS = 0;
-//    
-//}
