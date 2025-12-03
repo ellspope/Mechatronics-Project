@@ -7,6 +7,12 @@
 void config_ad(void);
 
 
+// trigger
+// ANSB8 = 0; pin 12 is digital
+// TRISB8 = 1; pin 12 is input
+// if(RB8 == 1) then do this function ( ball drop)
+
+
 int steps = 0;
 int time = 31250;
 void __attribute__((interrupt, no_auto_psv)) _OC1Interrupt(void)
