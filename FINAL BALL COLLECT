@@ -31,7 +31,7 @@ int threshold = 2400;
 
 
 // TRIGGER//
-// if (ADC1BUF4 >= 1861) then do this function
+// if (ADC1BUF14 >= 1861) then do this function
 
 
 
@@ -167,7 +167,7 @@ void config_ad(void){
     _CSS11 = 1; // scan pin 16
     _CSS10 = 1; // scan pin 17
     _CSS9 = 1; //scan pin 18
-    _CSS4 = 1;
+    _CSS14 = 1;
     _CSS0 = 1;
     
     _ADON = 1;      // AD1CON1<15> -- Turn on A/D
