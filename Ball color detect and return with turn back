@@ -115,7 +115,7 @@ int main() {
     
    
     while (ball_dropped == 0) { // While ball is not dropped
-        if ((TMR1 < 3906.25*4) && (scanned == 0)) { // If Timer1 < 4s and color not scanned
+        if ((TMR1 < 3906.25*2) && (scanned == 0)) { // If Timer1 < 2s and color not scanned
             if (ADC1BUF0 <= 2400) { // if ball is white
                 ball_color = 1;
                 //_LATB2 = 1;
@@ -130,7 +130,6 @@ int main() {
             if (ball_color == 0){ // If ball is black
                 // Code here to turn right 90 deg
                 turn_right();
-                _LATB2 = 0;
                 //_TON = 1; // Turn Timer1 back on
                 //TMR1 = 0; // Initialize timer1
                 while (OC3R > 175) {
@@ -145,6 +144,7 @@ int main() {
             }
             else if (ball_color == 1){ // If ball is white
                 // Code here to turn left 90 deg
+                _LATB2 = 1;
                 turn_left();
                 //_TON = 1; // Turn Timer1 back on
                 //TMR1 = 0; // Initialize timer1
@@ -225,12 +225,12 @@ void turn_right(void) {
     OC2R = 0; // 0% duty cycle > right off
     delay();
     steps = 0;
-    while(steps <= 140 * 2) {
+    while(steps <= 138.5 * 2 *2) {
             _LATA1 = 1; //  LEFT clockwise
             _LATB9 = 0; //  RIGHT counter clockwise
-            OC1RS = 1249 * 2 ;
+            OC1RS = 1249 * 0.5;
             OC1R = OC1RS * 0.5;
-            OC2RS = 1249 * 2 ;
+            OC2RS = 1249 * 0.5;
             OC2R = OC1RS * 0.5;
              
     }
@@ -246,13 +246,12 @@ void turn_left(void) {
     OC2R = 0; // 0% duty cycle > right off
     delay();
     steps = 0;
-    while(steps <= 140 * 2) {
-            _LATB2 = 1;
+    while(steps <= 138.5 * 2 *2) {
             _LATA1 = 0; //  LEFT clockwise
             _LATB9 = 1; //  RIGHT counter clockwise
-            OC1RS = 1249 * 2 ;
+            OC1RS = 1249 * 0.5;
             OC1R = OC1RS * 0.5;
-            OC2RS = 1249 * 2 ;
+            OC2RS = 1249 * 0.5;
             OC2R = OC1RS * 0.5;
              
     }
