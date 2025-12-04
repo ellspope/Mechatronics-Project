@@ -1,6 +1,9 @@
+
 #include "xc.h"
 
 #pragma config FNOSC = LPFRC     // 500 kHz LPRC oscillator
+#pragma config OSCIOFNC = OFF   // Turn off clock output on pin 8
+#pragma config SOSCSRC = DIG    // Turn off secondary oscillator on pins 9&10
 
 int main(void) {
    
@@ -32,11 +35,11 @@ int main(void) {
     // set sonar pins
     _TRISA2 = 0; //pin 7 set as output (trig)
     _TRISB2 = 1; // pin 6 set as input (echo 1, RIGHT)
-    _TRISA3 = 1; // pin 8 set as input (echo 2, FRONT)
+    _TRISB7 = 1; // pin 11 set as input (echo 2, FRONT)
    
     _ANSA2 = 0; // pin 7 set to digital
     _ANSB2 = 0; // pin 6 set to digital
-    _ANSA3 = 0; // pin 8 set to digital
+    //_ANSB7 = 0; // pin 11 set to digital
    
    
        // Configure Timer1
@@ -106,11 +109,11 @@ int main(void) {
                 _LATA2 = 0;  //set trig low
             }
     
-            while (_RA3 == 0){
+            while (_RB7 == 0){
               //wait
             }
             TMR1 = 0;       // Reset Timer1
-            while  (_RA3 == 1){
+            while  (_RB7 == 1){
         // wait
             }
             x_front = TMR1;
@@ -125,16 +128,16 @@ int main(void) {
              
        
             //move states
-            if (x_front > 5) //13 inch threshold
+            if (x_front > 6) //13 inch threshold
                 {
                     // Change state
                     state = STRAIGHT;            
                 }            
-             else if (x_front < 5 && x_right < 9){
+             else if (x_front < 6 && x_right < 10){
                  // Change state
                  state = LEFT;
              }
-             else if (x_front < 5 && x_right > 9){
+             else if (x_front < 6 && x_right > 10){
                  // Change state
                  state = RIGHT;
              }
@@ -148,9 +151,9 @@ int main(void) {
             _LATA1 = 1;  // left clockwise
             _LATB9 = 1;  // right clockwise
             _TON = 1;   // start timer
-            while (TMR1 < 1200){
-                OC1RS = 624;
-                OC2RS = 624;
+            while (TMR1 < 300){
+                OC1RS = 155;
+                OC2RS = 155;
                 OC1R = 0.5*OC1RS;
                 OC2R = 0.5*OC2RS;
             }
@@ -169,8 +172,8 @@ int main(void) {
             _LATB9 = 1;  // right clockwise
             _TON = 1;   // start timer
             while (TMR1 < 5000){
-                OC1RS = 1249;
-                OC2RS = 1249;
+                OC1RS = 624;
+                OC2RS = 624;
                 OC1R = 0.5*OC1RS;
                 OC2R = 0.5*OC2RS;
             }
@@ -189,8 +192,8 @@ int main(void) {
             _LATB9 = 0;  // right COUNTER clockwise
             _TON = 1;   // start timer
             while (TMR1 < 5000){
-                OC1RS = 1249;
-                OC2RS = 1249;
+                OC1RS = 624;
+                OC2RS = 624;
                 OC1R = 0.5*OC1RS;
                 OC2R = 0.5*OC2RS;
             }
