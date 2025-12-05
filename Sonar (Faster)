@@ -7,7 +7,7 @@
 
 
 // TRIGGER
-// else if (ADC1BUF10 >= 1240 && ADC1BUF11 >= 1240 && ADC1BUF9 >= 1240 && RB7 == 1) 
+// else if (ADC1BUF10 >= 1240 && ADC1BUF11 >= 1240 && ADC1BUF9 >= 1240 && RB8 == 0) 
 
 
 int main(void) {
