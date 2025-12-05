@@ -5,6 +5,11 @@
 #pragma config OSCIOFNC = OFF   // Turn off clock output on pin 8
 #pragma config SOSCSRC = DIG    // Turn off secondary oscillator on pins 9&10
 
+
+// TRIGGER
+// else if (ADC1BUF10 >= 1240 && ADC1BUF11 >= 1240 && ADC1BUF9 >= 1240 && RB7 == 1) 
+
+
 int main(void) {
    
     // Post-scale oscillator
